@@ -1,0 +1,74 @@
+services:
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - backend
+      
+  item_api:
+    build:
+      context: ./itemservice
+      dockerfile: Dockerfile
+    ports:
+      - '8080:8080'
+    expose: 
+      - '8080'
+    environment:
+      - ASPNETCORE_URLS=http://+:8080;
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - rabbitmq
+    networks:
+      - backend
+
+  restaurant_api:
+    build:
+      context: ./restaurantservice
+      dockerfile: Dockerfile
+    ports:
+      - '8081:8081'
+    expose: 
+      - '8081'
+    environment:
+      - ASPNETCORE_URLS=http://+:8081;
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - mysql
+      - rabbitmq
+    networks:
+      - backend
+    
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'restaurantdb'   
+      MYSQL_USER: 'restaurantusr'
+      MYSQL_PASSWORD: 'H4rdPWD!'      
+      MYSQL_ROOT_PASSWORD: 'H4rdPWD!'
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - './.mysql-data/db:/var/lib/mysql'
+    networks:
+      - backend
+
+volumes:
+  mysql_data:
+  rabbitmq_data:
+
+networks:
+  backend:
+    driver: bridge
